@@ -1,2 +1,2 @@
-rootProject.name = "scaff"
+rootProject.name = "chpkg"
 

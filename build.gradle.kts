@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "com.example"
+group = "com.mr3y"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
     implementation("com.github.ajalt.clikt:clikt:3.2.0")
 }
 

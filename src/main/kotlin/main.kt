@@ -1,3 +1,5 @@
+import com.github.ajalt.clikt.core.subcommands
+
 fun main(args: Array<String>) {
-    Scaff().main(args)
+    Chpkg().subcommands(Config()).main(args)
 }
