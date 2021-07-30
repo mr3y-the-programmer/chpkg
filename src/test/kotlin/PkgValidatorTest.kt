@@ -15,6 +15,9 @@ class PkgValidatorTest {
         assertFalse { "com..exa?\\}{;mple.app".isPackageName() }
         assertFalse { "com..exa~@#\$()mple.app".isPackageName() }
         assertFalse { "com.ex*&^ample.app".isPackageName() }
+        assertFalse { "com.example.app.".isPackageName() }
+        assertFalse { "com.exa0mp9le.a_p_p.".isPackageName() }
+        assertFalse { "com.".isPackageName() }
     }
 
     @Test
@@ -22,10 +25,7 @@ class PkgValidatorTest {
         assertTrue { "com.example.app".isPackageName() }
         assertTrue { "com".isPackageName() }
         assertTrue { "comexample".isPackageName() }
-        assertTrue { "com.example.app.".isPackageName() }
-        assertTrue { "com.".isPackageName() }
         assertTrue { "com.exa0mp9le.a_p_p".isPackageName() }
-        assertTrue { "com.exa0mp9le.a_p_p.".isPackageName() }
     }
 
 
