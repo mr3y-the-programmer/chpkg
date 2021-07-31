@@ -40,6 +40,11 @@ class PkgOptions: OptionGroup() {
 class Chpkg: CliktCommand(invokeWithoutSubcommand = true) {
     val pkgMetaData by PkgOptions().cooccurring()
 
+    init {
+        // TODO: fetch this from git tags
+        versionOption("1.0.3", help = "Current Chpkg's version")
+    }
+
     override fun run() {
         echo("Welcome to Chpkg tool!")
     }
