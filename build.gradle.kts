@@ -15,6 +15,7 @@ repositories {
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
     implementation("com.github.ajalt.clikt:clikt:3.2.0")
+    implementation("com.squareup.okio:okio:3.0.0-alpha.9")
 }
 
 tasks.test {

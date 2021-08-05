@@ -1,4 +1,5 @@
 import org.jetbrains.annotations.TestOnly
+import java.io.File
 
 @TestOnly
 internal fun String.isPackageName(): Boolean {
@@ -24,4 +25,15 @@ internal fun String.trimInclude() = when {
         this.removePrefix("include \":").removeSuffix("\"")
     }
     else -> this
+}
+
+internal fun String.containsMoreThanOnce(other: String) = this.split(other).size > 2
+
+internal fun File.replace(oldVal: String, newVal: String) {
+    // TODO: should we write/read using okio?
+    writeText(readText().replace(oldVal, newVal))
+}
+
+internal fun File.replace(regex: Regex, newVal: String) {
+    writeText(readText().replace(regex, newVal))
 }
