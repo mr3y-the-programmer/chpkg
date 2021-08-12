@@ -151,7 +151,6 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
                 runCatching { Files.move(oldPath, oldPath.resolveSibling(newName)) }.getOrThrow()
             }
         }
-        echo(settingsPath.toString())
     }
 
     @Throws(IOException::class)

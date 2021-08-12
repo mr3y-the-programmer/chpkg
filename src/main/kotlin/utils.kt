@@ -12,7 +12,7 @@ internal fun String.isModuleName(): Boolean {
     return this.matches(Regex("""include\(":[\w-]+"\)|include ':[\w-]+'|include ":[\w-]+""""))
 }
 
-internal fun String.trimLastDot() = if (this.endsWith(".")) this.removeSuffix(".") else this
+internal fun String.trimLastDot() = this.removeSuffix(".")
 
 internal fun String.trimInclude() = when {
     this.startsWith("include(") -> {
