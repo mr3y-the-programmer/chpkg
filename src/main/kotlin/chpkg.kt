@@ -165,12 +165,4 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
         }
         return modules
     }
-
-}
-
-class Config: CliktCommand(help = "Configure chpkg global options, like the default project type.") {
-
-    override fun run() {
-
-    }
 }
