@@ -1,0 +1,6 @@
+include(":app")
+include(":base-android")
+include(":base")
+include(":common")
+include(":core")
+include(":model")
