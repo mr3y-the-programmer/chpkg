@@ -1,6 +1,10 @@
 import org.jetbrains.annotations.TestOnly
 import java.io.File
 
+internal val srcPkgNameRgx = Regex("""package ([a-z0-9_]+\.?)+(;?)$""")
+
+internal val manifestRgx = Regex("""package="([a-z0-9_]+\.?)+"""")
+
 @TestOnly
 internal fun String.isPackageName(): Boolean {
     val lastSeg = this.split('.').last()
