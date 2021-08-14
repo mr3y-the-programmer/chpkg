@@ -1,7 +1,7 @@
 import org.junit.BeforeClass
 import org.junit.Test
+import utils.root
 import java.io.File
-import java.nio.file.Paths
 import kotlin.io.path.div
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
@@ -28,7 +28,6 @@ class ChpkgRunTest {
 
     companion object {
         private lateinit var chpkg: Chpkg
-        private val root = Paths.get("").toAbsolutePath() / "src" / "test" / "fakeproject"
         private val modules = getModules()
 
         @BeforeClass
