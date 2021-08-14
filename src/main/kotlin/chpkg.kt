@@ -6,13 +6,13 @@ import com.github.ajalt.clikt.parameters.options.*
 import okio.IOException
 import okio.buffer
 import okio.source
+import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.div
 import kotlin.io.path.exists
-import kotlin.io.path.name
 import kotlin.jvm.Throws
 
 class PkgOptions: OptionGroup() {
@@ -96,54 +96,18 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
                     updatedPaths += Pair(file.toPath(), newName)
                 }
                 if (file.isFile) {
-                    if (file.extension == "kt" || file.extension == "java") {
-                        val parent = file.toPath().parent.name
-                        val oldPkgNameRgx = Regex("""package ([a-z0-9_]+\.)*$parent""")
-                        when {
-                            from == parent -> {
-                                val prepend =
-                                    oldPkgNameRgx.find(file.readText())?.value?.substringBeforeLast(parent) ?: continue
-                                file.replace("$prepend$from", "$prepend$to")
-                            }
-                            from.contains(parent) -> {
-                                if (from.containsMoreThanOnce(parent)) {
-                                    // the regex is non-greedy, so it'll match all occurrences
-                                    val oldPkg = oldPkgNameRgx.find(file.readText())?.value ?: continue
-                                    val prepend = oldPkg.substringBefore(from)
-                                    val pkgLength = oldPkg.substringAfter(prepend).split('.').size
-                                    file.replace(oldPkg, "$prepend${to.split('.').take(pkgLength)}")
-                                } else {
-                                    val prefixLength = from.substringBefore(parent).count { it == '.' }
-                                    val toSplitted = to.split('.').take(prefixLength + 1)
-                                    val (prepend, newParent) = toSplitted.take(prefixLength)
-                                        .joinToString(".", postfix = ".") to toSplitted.last()
-                                    file.replace(oldPkgNameRgx, "package $prepend$newParent")
-                                }
-                            }
-                            parent.contains(from) -> {
-                                val oldPkg = oldPkgNameRgx.find(file.readText())?.value ?: continue
-                                file.replace(oldPkg, oldPkg.replace(from, to))
-                            }
-                            else -> continue
+                    val oldPkg = when {
+                        file.extension == "kt" || file.extension == "java" -> {
+                            srcPkgNameRgx.find(file.readText())?.value?.removePrefix("package ")
+                                ?.removeSuffix(";") ?: continue
                         }
-                    }
-                    if (file.name == "AndroidManifest.xml") {
-                        val manifestRgx = Regex("""package="([a-z0-9_]+\.?)+"""")
-                        val pkg = manifestRgx.find(file.readText())?.value
+                        file.name == "AndroidManifest.xml" -> {
+                            manifestRgx.find(file.readText())?.value
                                 ?.removePrefix("package=")?.removeSurrounding("\"") ?: continue
-                        if (pkg == from) {
-                            file.replace(pkg, to)
-                            continue
                         }
-                        val (fromSplitted, toSplitted) = from.split('.') to to.split('.')
-                        val newPkg = pkg.split('.').map { pkgSegment ->
-                            fromSplitted.forEachIndexed { index, fromSegment ->
-                                if (pkgSegment == fromSegment) return@map toSplitted[index]
-                            }
-                            pkgSegment
-                        }.joinToString(separator = ".")
-                        file.replace(pkg, newPkg)
+                        else -> continue
                     }
+                    file.updatePkgName(oldPkg, from, to)
                 }
             }
             updatedPaths.forEach { (oldPath, newName) ->
@@ -163,5 +127,35 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
                 .forEach{ moduleName -> modules.add(moduleName) }
         }
         return modules
+    }
+}
+
+@TestOnly
+internal fun File.updatePkgName(oldPkg: String, from: String, to: String) {
+    if (from == oldPkg) {
+        replace(oldPkg, to)
+        return
+    }
+    // otherwise, we have to go segment by segment
+    val (fromSplitted, toSplitted) = from.split('.') to to.split('.')
+    var segmentsProcessed = 0
+    val newPkg = oldPkg.split('.').map { pkgSegment ->
+        val (fromNormalized, itemsDropped, processed, isDuplicate) = fromSplitted.dropHandledDuplicates(pkgSegment, segmentsProcessed)
+        segmentsProcessed = processed
+        fromNormalized.forEachIndexed { index, fromSegment ->
+            if (pkgSegment == fromSegment) return@map if(isDuplicate) toSplitted.drop(itemsDropped)[index] else toSplitted[index]
+        }
+        pkgSegment
+    }.joinToString(separator = ".")
+    replace(oldPkg, newPkg)
+}
+
+private fun List<String>.dropHandledDuplicates(target: String, segProcessed: Int): Quadratic<List<String>, Int, Int, Boolean> {
+    return if (count { it == target } > 1) {
+        val copy = segProcessed.coerceAtMost(lastIndex)
+        val segmentsProcessed = subList(copy, size).indexOfFirst { it == target } + 1
+        Quadratic(drop(copy), copy, segmentsProcessed, true)
+    } else {
+        Quadratic(this, 0, segProcessed, false)
     }
 }
