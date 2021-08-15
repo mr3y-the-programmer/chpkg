@@ -11,8 +11,10 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.div
 import kotlin.io.path.exists
+import kotlin.io.path.name
 import kotlin.jvm.Throws
 
 class PkgOptions: OptionGroup() {
@@ -73,27 +75,10 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
         val modules = readModulesNames(File(settingsPath.toString()))
         modules.forEach { module ->
             val srcDir = (path(module) / "src" / "main").toString()
-            var dirsNotProcessed = Int.MAX_VALUE
-            val updatedPaths = mutableListOf<Pair<Path, String>>()
             val sourceFiles = File(srcDir).walkBottomUp()
             for (file in sourceFiles) {
                 if (file.isDirectory) {
-                    val dirName = file.name
-                    val newName = when {
-                        dirName == from -> to
-                        from.contains(dirName) -> {
-                            val bijection = from.split('.') zip to.split('.')
-                            fun List<Pair<String, String>>.normalize() = if (from.containsMoreThanOnce(dirName)) {
-                                val copy = dirsNotProcessed.coerceIn(0, size)
-                                dirsNotProcessed = subList(0, copy).indexOfLast { it.first == dirName }
-                                dropLast(size - copy)
-                            } else this
-                            bijection.normalize().last { it.first == dirName }.second
-                        }
-                        dirName.contains(from) -> dirName.replace(from, to)
-                        else -> continue
-                    }
-                    updatedPaths += Pair(file.toPath(), newName)
+                    file.updateDirName(from, to)
                 }
                 if (file.isFile) {
                     val oldPkg = when {
@@ -110,10 +95,6 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
                     file.updatePkgName(oldPkg, from, to)
                 }
             }
-            updatedPaths.forEach { (oldPath, newName) ->
-                // TODO: allow user to replace existing dir through a flag
-                runCatching { Files.move(oldPath, oldPath.resolveSibling(newName)) }.getOrThrow()
-            }
         }
     }
 
@@ -128,6 +109,54 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
         }
         return modules
     }
+}
+
+typealias IllegalReceiverException = IllegalArgumentException
+
+@TestOnly
+internal fun File.updateDirName(from: String, to: String) {
+    if (!isDirectory) throw IllegalReceiverException("$name isn't a valid directory!")
+    val dirName = name
+    if(!from.startsWith(dirName)) {
+        var startBoundFile = parentFile.toPath()
+        var startBound = startBoundFile.last().name
+        while (startBound.isNotEmpty()) {
+            when {
+                from.startsWith(startBound) -> break
+                from.contains(".") && !from.contains(startBound) -> return
+            }
+            startBoundFile = startBoundFile.parent
+            startBound = startBoundFile.last().name
+        }
+    }
+    val newName = when {
+        dirName == from -> to
+        from.contains(dirName) -> {
+            val bijection = from.split('.') zip to.split('.')
+            bijection.dropDuplicates(from, dirName).last { it.first == dirName }.second
+        }
+        dirName.contains(from) -> dirName.replace(from, to)
+        else -> return
+    }
+    val oldPath = this.toPath()
+    // TODO: allow user to replace existing dir through a flag
+    runCatching { Files.move(oldPath, oldPath.resolveSibling(newName)) }.getOrThrow()
+}
+
+private val dirsNotProcessed = AtomicInteger(Int.MAX_VALUE)
+
+private fun List<Pair<String, String>>.dropDuplicates(container: String, contained: String): List<Pair<String, String>> {
+    return if (container.containsMoreThanOnce(contained)) {
+        var copy: Int
+        var safeCopy: Int
+        while (true) {
+            copy = dirsNotProcessed.get()
+            safeCopy = copy.coerceIn(0, size)
+            val newValue = subList(0, safeCopy).indexOfLast { it.first == contained }
+            if (dirsNotProcessed.compareAndSet(copy, newValue)) break
+        }
+        dropLast(size - safeCopy)
+    } else this
 }
 
 @TestOnly
