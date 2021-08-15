@@ -6,15 +6,11 @@ import com.github.ajalt.clikt.parameters.options.*
 import okio.IOException
 import okio.buffer
 import okio.source
-import org.jetbrains.annotations.TestOnly
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.div
 import kotlin.io.path.exists
-import kotlin.io.path.name
 import kotlin.jvm.Throws
 
 class PkgOptions: OptionGroup() {

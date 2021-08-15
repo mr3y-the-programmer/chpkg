@@ -4,6 +4,8 @@ import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.name
 
+data class Quadratic<A: Any,B: Any,C: Any,D: Any>(val a: A, val b: B, val c: C, val d: D)
+
 typealias IllegalReceiverException = IllegalArgumentException
 
 @TestOnly

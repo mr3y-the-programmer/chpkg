@@ -41,5 +41,3 @@ internal fun File.replace(oldVal: String, newVal: String) {
 internal fun File.replace(regex: Regex, newVal: String) {
     writeText(readText().replace(regex, newVal))
 }
-
-data class Quadratic<A: Any,B: Any,C: Any,D: Any>(val a: A, val b: B, val c: C, val d: D)
