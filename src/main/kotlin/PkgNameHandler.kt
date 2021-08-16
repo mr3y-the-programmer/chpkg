@@ -1,10 +1,10 @@
+import okio.buffer
+import okio.source
 import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.name
-
-data class Quadratic<A: Any,B: Any,C: Any,D: Any>(val a: A, val b: B, val c: C, val d: D)
 
 typealias IllegalReceiverException = IllegalArgumentException
 
@@ -55,31 +55,39 @@ private fun List<Pair<String, String>>.dropDuplicates(container: String, contain
 }
 
 @TestOnly
-internal fun File.updatePkgName(oldPkg: String, from: String, to: String) {
-    if (from == oldPkg) {
-        replace(oldPkg, to)
-        return
-    }
-    // otherwise, we have to go segment by segment
-    val (fromSplitted, toSplitted) = from.split('.') to to.split('.')
-    var segmentsProcessed = 0
-    val newPkg = oldPkg.split('.').map { pkgSegment ->
-        val (fromNormalized, itemsDropped, processed, isDuplicate) = fromSplitted.dropHandledDuplicates(pkgSegment, segmentsProcessed)
-        segmentsProcessed = processed
-        fromNormalized.forEachIndexed { index, fromSegment ->
-            if (pkgSegment == fromSegment) return@map if(isDuplicate) toSplitted.drop(itemsDropped)[index] else toSplitted[index]
-        }
-        pkgSegment
-    }.joinToString(separator = ".")
+internal fun File.updatePkgName(from: String, to: String) {
+    val oldPkg = extractPkgName() ?: return
+    val newPkg = if (from == oldPkg) to else oldPkg.replace(from, to)
     replace(oldPkg, newPkg)
 }
 
-private fun List<String>.dropHandledDuplicates(target: String, segProcessed: Int): Quadratic<List<String>, Int, Int, Boolean> {
-    return if (count { it == target } > 1) {
-        val copy = segProcessed.coerceAtMost(lastIndex)
-        val segmentsProcessed = subList(copy, size).indexOfFirst { it == target } + 1
-        Quadratic(drop(copy), copy, segmentsProcessed, true)
-    } else {
-        Quadratic(this, 0, segProcessed, false)
+@TestOnly
+internal fun File.extractPkgName(): String? {
+    return when {
+        extension == "kt" || extension == "java" -> {
+            bufferedSequence(
+                filter = { line ->
+                    line.matches(srcPkgNameRgx)
+                },
+                map = { line ->
+                    line.removePrefix("package ").removeSuffix(";")
+                }
+            )
+        }
+        name == "AndroidManifest.xml" -> {
+            // package in manifest file cannot be detected easily using okio approach,
+            // so keep using the old approach here
+            manifestRgx.find(readText())?.value
+                ?.removePrefix("package=")?.removeSurrounding("\"")
+        }
+        else -> null
     }
 }
+
+private fun File.bufferedSequence(filter: (String) -> Boolean, map: (String) -> String) =
+    source().buffer().use { bufferedSource ->
+        generateSequence { bufferedSource.readUtf8Line() }
+            .filter { filter(it) }
+            .map { map(it) }
+            .singleOrNull()
+    }

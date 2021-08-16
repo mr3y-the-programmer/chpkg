@@ -71,30 +71,12 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
         val modules = readModulesNames(File(settingsPath.toString()))
         modules.forEach { module ->
             val srcDir = (path(module) / "src" / "main").toString()
-            val sourceFiles = File(srcDir).walkBottomUp()
-            for (file in sourceFiles) {
-                if (file.isDirectory) {
-                    file.updateDirName(from, to)
-                }
-                if (file.isFile) {
-                    val oldPkg = extractPkgName(file) ?: continue
-                    file.updatePkgName(oldPkg, from, to)
+            File(srcDir).walkBottomUp().forEach { file ->
+                when {
+                    file.isDirectory -> file.updateDirName(from, to)
+                    file.isFile -> file.updatePkgName(from, to)
                 }
             }
-        }
-    }
-
-    private fun extractPkgName(sourceFile: File): String? {
-        return when {
-            sourceFile.extension == "kt" || sourceFile.extension == "java" -> {
-                srcPkgNameRgx.find(sourceFile.readText())?.value?.removePrefix("package ")
-                    ?.removeSuffix(";")
-            }
-            sourceFile.name == "AndroidManifest.xml" -> {
-                manifestRgx.find(sourceFile.readText())?.value
-                    ?.removePrefix("package=")?.removeSurrounding("\"")
-            }
-            else -> null
         }
     }
 
