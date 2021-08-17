@@ -38,7 +38,11 @@ class ChpkgRunTest {
         }
 
         private fun getModules(): List<String> {
-            return File(root.toString()).listFiles()?.filter { it.isDirectory }?.map { it.name }?.toList() ?: emptyList()
+            return File(root.toString())
+                .listFiles()
+                ?.filter { it.isDirectory }
+                ?.map { it.name }
+                ?.toList() ?: emptyList()
         }
     }
 }

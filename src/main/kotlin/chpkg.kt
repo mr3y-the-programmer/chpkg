@@ -2,7 +2,12 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import com.github.ajalt.clikt.parameters.groups.cooccurring
-import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.options.check
+import com.github.ajalt.clikt.parameters.options.convert
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.validate
+import com.github.ajalt.clikt.parameters.options.versionOption
 import okio.IOException
 import okio.buffer
 import okio.source
@@ -13,7 +18,7 @@ import kotlin.io.path.div
 import kotlin.io.path.exists
 import kotlin.jvm.Throws
 
-class PkgOptions: OptionGroup() {
+class PkgOptions : OptionGroup() {
     val from by option("--from", help = helpMessageFor("old"), metavar = "old package name")
         .convert {
             // for more flexibility, allow pkg name to have a suffix of only 1 "."
@@ -47,7 +52,7 @@ class PkgOptions: OptionGroup() {
     }
 }
 
-class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs = true) {
+class Chpkg : CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs = true) {
     val pkgOptions by PkgOptions().cooccurring()
 
     init {
@@ -65,8 +70,10 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
         val settingsPath = when {
             path("settings.gradle.kts").exists() -> path("settings.gradle.kts")
             path("settings.gradle").exists() -> path("settings.gradle")
-            else -> throw UsageError("chpkg cannot function without settings.gradle/.kts file," +
-                " make sure you have one in the root of your project")
+            else -> throw UsageError(
+                "chpkg cannot function without settings.gradle/.kts file," +
+                    " make sure you have one in the root of your project"
+            )
         }
         val modules = readModulesNames(File(settingsPath.toString()))
         modules.forEach { module ->
@@ -87,7 +94,7 @@ class Chpkg: CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs =
             generateSequence { source.readUtf8Line() }
                 .filter(String::isModuleName)
                 .map(String::trimInclude)
-                .forEach{ moduleName -> modules.add(moduleName) }
+                .forEach { moduleName -> modules.add(moduleName) }
         }
         return modules
     }

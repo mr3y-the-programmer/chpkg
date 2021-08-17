@@ -27,6 +27,4 @@ class PkgValidatorTest {
         assertTrue { "comexample".isPackageName() }
         assertTrue { "com.exa0mp9le.a_p_p".isPackageName() }
     }
-
-
 }

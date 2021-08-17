@@ -12,7 +12,7 @@ typealias IllegalReceiverException = IllegalArgumentException
 internal fun File.updateDirName(from: String, to: String) {
     if (!isDirectory) throw IllegalReceiverException("$name isn't a valid directory!")
     val dirName = name
-    if(!from.startsWith(dirName)) {
+    if (!from.startsWith(dirName)) {
         var startBoundFile = parentFile.toPath()
         var startBound = startBoundFile.last().name
         while (startBound.isNotEmpty()) {
@@ -40,7 +40,10 @@ internal fun File.updateDirName(from: String, to: String) {
 
 private val dirsNotProcessed = AtomicInteger(Int.MAX_VALUE)
 
-private fun List<Pair<String, String>>.dropDuplicates(container: String, contained: String): List<Pair<String, String>> {
+private fun List<Pair<String, String>>.dropDuplicates(
+    container: String,
+    contained: String
+): List<Pair<String, String>> {
     return if (container.containsMoreThanOnce(contained)) {
         var copy: Int
         var safeCopy: Int
