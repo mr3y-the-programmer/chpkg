@@ -1,4 +1,4 @@
-package com.project.base-android.app
+package com.project.base_android.app
 
 fun main() {
 

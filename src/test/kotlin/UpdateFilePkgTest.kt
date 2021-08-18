@@ -3,9 +3,13 @@ import org.junit.experimental.runners.Enclosed
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import utils.getModuleMainFiles
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
+data class ModuleWithPkgName(
+    val moduleName: String,
+    val pkgName: String
+)
 
 @RunWith(Enclosed::class)
 class UpdateFilePkgTest {
@@ -13,13 +17,29 @@ class UpdateFilePkgTest {
     /*
         Check Pkg name is extracted correctly
      */
-    class ExtractPkgNameTest {
+    @RunWith(Parameterized::class)
+    class ExtractPkgNameTest(private val moduleMetadata: ModuleWithPkgName) {
         @Test
         fun `check pkg name is extracted correctly`() {
-            val files = getModuleMainFiles("app")
-            files.forEach { file ->
+            val (module, pkgName) = moduleMetadata
+            getModuleMainFiles(module).forEach { file ->
                 val actual = file.extractPkgName()
-                assertEquals("com.project.app", actual)
+                assertTrue { actual?.startsWith(pkgName) ?: false }
+            }
+        }
+
+        companion object {
+            @JvmStatic
+            @Parameterized.Parameters
+            fun testData(): List<Array<ModuleWithPkgName>> {
+                return listOf(
+                    arrayOf(ModuleWithPkgName("app", "com.project.app")),
+                    arrayOf(ModuleWithPkgName("base", "com.project.base")),
+                    arrayOf(ModuleWithPkgName("base-android", "com.project")),
+                    arrayOf(ModuleWithPkgName("common", "com.project.common")),
+                    arrayOf(ModuleWithPkgName("core", "com.project.core")),
+                    arrayOf(ModuleWithPkgName("model", "com.project.model")),
+                )
             }
         }
     }
