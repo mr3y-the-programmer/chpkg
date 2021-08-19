@@ -8,7 +8,8 @@ import kotlin.test.assertTrue
 
 data class ModuleWithPkgName(
     val moduleName: String,
-    val pkgName: String
+    val oldName: String,
+    val newName: String?
 )
 
 @RunWith(Enclosed::class)
@@ -33,12 +34,12 @@ class UpdateFilePkgTest {
             @Parameterized.Parameters
             fun testData(): List<Array<ModuleWithPkgName>> {
                 return listOf(
-                    arrayOf(ModuleWithPkgName("app", "com.project.app")),
-                    arrayOf(ModuleWithPkgName("base", "com.project.base")),
-                    arrayOf(ModuleWithPkgName("base-android", "com.project")),
-                    arrayOf(ModuleWithPkgName("common", "com.project.common")),
-                    arrayOf(ModuleWithPkgName("core", "com.project.core")),
-                    arrayOf(ModuleWithPkgName("model", "com.project.model")),
+                    arrayOf(ModuleWithPkgName("app", "com.project.app", null)),
+                    arrayOf(ModuleWithPkgName("base", "com.project.base", null)),
+                    arrayOf(ModuleWithPkgName("base-android", "com.project", null)),
+                    arrayOf(ModuleWithPkgName("common", "com.project.common", null)),
+                    arrayOf(ModuleWithPkgName("core", "com.project.core", null)),
+                    arrayOf(ModuleWithPkgName("model", "com.project.model", null)),
                 )
             }
         }
@@ -48,30 +49,33 @@ class UpdateFilePkgTest {
         Check file's package name is updated correctly
      */
     @RunWith(Parameterized::class)
-    class UpdatePkgNameTest(private val oldToNew: Pair<String, String>) {
+    class UpdatePkgNameTest(private val moduleMetadata: ModuleWithPkgName) {
 
         @Test
-        fun `check app module's package name is updated correctly`() {
-            val (from, to) = oldToNew
-            val files = getModuleMainFiles("app")
+        fun `check module's package name is updated correctly`() {
+            val (module, from, to) = moduleMetadata
+            val files = getModuleMainFiles(module)
             files.forEach { file ->
-                file.updatePkgName(from, to)
+                file.updatePkgName(from, to!!)
                 val content = file.readText()
                 assertTrue { content.contains(to) }
                 assertFalse { content.contains(from) }
             }
             // reset to default
-            files.forEach { it.updatePkgName(to, from) }
+            files.forEach { it.updatePkgName(to!!, from) }
         }
 
         companion object {
             @JvmStatic
             @Parameterized.Parameters
-            fun testData(): List<Array<Pair<String, String>>> {
+            fun testData(): List<Array<ModuleWithPkgName>> {
                 return listOf(
-                    arrayOf(Pair("com.project", "io.bar")),
-                    arrayOf(Pair("com.project.app", "new.oroo.crow")),
-                    arrayOf(Pair("com.project", "bar.bar")),
+                    arrayOf(ModuleWithPkgName("app", "com.project.app", "io.bar.foo")),
+                    arrayOf(ModuleWithPkgName("base-android", "com.project", "new.crow")),
+                    arrayOf(ModuleWithPkgName("base", "com.project.base", "new.arrow.make")),
+                    arrayOf(ModuleWithPkgName("common", "com", "net")),
+                    arrayOf(ModuleWithPkgName("core", "project.core", "app.internal")),
+                    arrayOf(ModuleWithPkgName("model", "oje", "brew")),
                 )
             }
         }
