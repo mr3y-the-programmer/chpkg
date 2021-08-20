@@ -1,10 +1,12 @@
 import org.junit.BeforeClass
 import org.junit.Test
+import utils.getModuleMainFiles
 import utils.root
 import java.io.File
 import kotlin.io.path.div
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ChpkgRunTest {
@@ -13,12 +15,16 @@ class ChpkgRunTest {
     fun `change the global namespace from com,project to net,bar`() {
         val (oldNameSpace, newNameSpace) = "com.project" to "net.bar"
         cmd("--from $oldNameSpace --to $newNameSpace")
-        val modulesPaths = modules.map { root / it }
+        val (modulesPaths, moduleFiles) = modules.map { root / it } to modules.flatMap { getModuleMainFiles(it) }
         modulesPaths.forEach { path ->
             val src = path / "src" / "main" / "kotlin"
             val (oldDir, newDir) = src / "com" / "project" to src / "net" / "bar"
             assertTrue { oldDir.notExists() }
             assertTrue { newDir.exists() }
+        }
+        moduleFiles.forEach { file ->
+            assertTrue { file.readText().contains(newNameSpace) }
+            assertFalse { file.readText().contains(oldNameSpace) }
         }
         // reset to default to make the test idempotent & deterministic
         cmd("--from $newNameSpace --to $oldNameSpace")
