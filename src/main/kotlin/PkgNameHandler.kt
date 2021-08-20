@@ -21,7 +21,7 @@ internal fun File.updateDirName(from: String, to: String) {
                 from.contains(".") && !from.contains(startBound) -> return
             }
             startBoundFile = startBoundFile.parent
-            startBound = startBoundFile.last().name
+            startBound = startBoundFile.lastOrNull()?.name ?: break
         }
     }
     val newName = when {
