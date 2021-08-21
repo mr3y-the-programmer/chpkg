@@ -16,6 +16,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.div
 import kotlin.io.path.exists
+import kotlin.io.path.notExists
 import kotlin.jvm.Throws
 
 class PkgOptions : OptionGroup() {
@@ -77,12 +78,19 @@ class Chpkg : CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs 
         }
         val modules = readModulesNames(File(settingsPath.toString()))
         modules.forEach { module ->
-            val srcDir = (path(module) / "src" / "main").toString()
-            File(srcDir).walkBottomUp().forEach { file ->
-                when {
-                    file.isDirectory -> file.updateDirName(from, to)
-                    file.isFile -> file.updatePkgName(from, to)
-                }
+            val srcPath: (String) -> Path = { path(module) / "src" / it }
+            traversePath(srcPath("main"), from, to)
+            traversePath(srcPath("test"), from, to)
+            traversePath(srcPath("androidTest"), from, to)
+        }
+    }
+
+    private fun traversePath(path: Path, from: String, to: String) {
+        if (path.notExists()) return
+        File(path.toString()).walkBottomUp().forEach { file ->
+            when {
+                file.isDirectory -> file.updateDirName(from, to)
+                file.isFile -> file.updatePkgName(from, to)
             }
         }
     }
