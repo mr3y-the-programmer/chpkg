@@ -1,5 +1,8 @@
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
+import utils.TestCoroutineRule
 import utils.getModuleMainFiles
 import utils.root
 import java.io.File
@@ -9,6 +12,7 @@ import kotlin.io.path.notExists
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+@ExperimentalCoroutinesApi
 class ChpkgRunTest {
 
     @Test
@@ -35,11 +39,13 @@ class ChpkgRunTest {
     companion object {
         private lateinit var chpkg: Chpkg
         private val modules = getModules()
+        @get:Rule
+        val coroutineRule = TestCoroutineRule()
 
         @BeforeClass
         @JvmStatic
         fun initAndHeadToRootProject() {
-            chpkg = Chpkg()
+            chpkg = Chpkg(coroutineRule.testDispatcher)
             System.setProperty("user.dir", root.toString())
         }
 
