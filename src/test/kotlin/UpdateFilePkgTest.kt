@@ -1,7 +1,11 @@
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runBlockingTest
+import org.junit.Rule
 import org.junit.Test
 import org.junit.experimental.runners.Enclosed
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import utils.TestCoroutineRule
 import utils.getModuleMainFiles
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -48,11 +52,15 @@ class UpdateFilePkgTest {
     /*
         Check file's package name is updated correctly
      */
+    @ExperimentalCoroutinesApi
     @RunWith(Parameterized::class)
     class UpdatePkgNameTest(private val moduleMetadata: ModuleWithPkgName) {
 
+        @get:Rule
+        val coroutineRule = TestCoroutineRule()
+
         @Test
-        fun `check module's package name is updated correctly`() {
+        fun `check module's package name is updated correctly`() = coroutineRule.testDispatcher.runBlockingTest {
             val (module, from, to) = moduleMetadata
             val files = getModuleMainFiles(module)
             files.forEach { file ->

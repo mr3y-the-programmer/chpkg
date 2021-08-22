@@ -70,10 +70,18 @@ private fun List<Pair<String, String>>.dropDuplicates(
 }
 
 @TestOnly
-internal fun File.updatePkgName(from: String, to: String) {
-    val oldPkg = extractPkgName() ?: return
-    val newPkg = if (from == oldPkg) to else oldPkg.replace(from, to)
-    replace(oldPkg, newPkg)
+internal suspend fun File.updatePkgName(from: String, to: String) = suspendCancellableCoroutine<Unit> { cont ->
+    while (cont.isActive) {
+        val oldPkg = extractPkgName()
+        if (oldPkg != null) {
+            val newPkg = if (from == oldPkg) to else oldPkg.replace(from, to)
+            replace(oldPkg, newPkg)
+            cont.resume(Unit)
+        } else {
+            cont.resume(Unit)
+            return@suspendCancellableCoroutine
+        }
+    }
 }
 
 @TestOnly
