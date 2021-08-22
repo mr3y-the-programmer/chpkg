@@ -1,4 +1,8 @@
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runBlockingTest
+import org.junit.Rule
 import org.junit.Test
+import utils.TestCoroutineRule
 import utils.baseMainPath
 import utils.getModuleMainDirs
 import java.nio.file.Path
@@ -10,7 +14,11 @@ import kotlin.test.assertTrue
 /*
     Check dir names are updated correctly
  */
+@ExperimentalCoroutinesApi
 class UpdateDirNameTest {
+
+    @get:Rule
+    val coroutineRule = TestCoroutineRule()
 
     @Test
     fun `check app module directories are updated correctly`() {
@@ -47,7 +55,13 @@ class UpdateDirNameTest {
         runTest("common", "oje", "crow", oldPath, newPath)
     }
 
-    private fun runTest(module: String, from: String, to: String, oldPath: Path, newPath: Path) {
+    private fun runTest(
+        module: String,
+        from: String,
+        to: String,
+        oldPath: Path,
+        newPath: Path
+    ) = coroutineRule.testDispatcher.runBlockingTest {
         val dirs = getModuleMainDirs(module)
         dirs.forEach { it.updateDirName(from, to) }
         assertTrue { newPath.exists() }
