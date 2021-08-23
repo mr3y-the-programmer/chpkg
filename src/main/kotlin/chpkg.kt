@@ -48,6 +48,10 @@ class PkgOptions : OptionGroup() {
             require(it.isPackageName()) {
                 badPkgName()
             }
+            require(it.split(".").size == from.split(".").size) {
+                "to value must == from value in the number of segments," +
+                    " (char \".\" marks the end of a segment and the start of a new one) "
+            }
         }
 
     private fun badPkgName() = "Make sure to specify a valid package name"

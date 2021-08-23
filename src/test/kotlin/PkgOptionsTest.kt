@@ -11,39 +11,47 @@ class PkgOptionsTest {
     @Test
     fun `entering from without to should throw MissingOption`() {
         assertFailsWith(MissingOption::class) {
-            cmd(arrayOf("--from", "com.example.com"))
+            cmd("--from com.example.com")
         }
     }
 
     @Test
     fun `entering to without from should throw MissingOption`() {
         assertFailsWith(MissingOption::class) {
-            cmd(arrayOf("--to", "com.example.com"))
+            cmd("--to com.example.com")
         }
     }
 
     @Test
     fun `to value is the same as from value should throw BadParameterValue`() {
         assertFailsWith(BadParameterValue::class) {
-            cmd(arrayOf("--from", "com.example.com", "--to", "com.example.com"))
+            cmd("--from com.example.com --to com.example.com")
         }
         assertFailsWith(BadParameterValue::class) {
-            cmd(arrayOf("--from", "com.example.com.", "--to", "com.example.com"))
+            cmd("--from com.example.com. --to com.example.com")
         }
         assertFailsWith(BadParameterValue::class) {
-            cmd(arrayOf("--from", "com.example.com", "--to", "com.example.com."))
+            cmd("--from com.example.com --to com.example.com.")
+        }
+    }
+
+    @Test
+    fun `from & to don't match on the number of segments should throw BadParameterValue`() {
+        assertFailsWith(BadParameterValue::class) {
+            cmd("--from com.example.com --to com.example.com.net")
+        }
+        assertFailsWith(BadParameterValue::class) {
+            cmd("--from com.example.com.io --to com.example.com")
         }
     }
 
     @Test
     fun `to value is not as from value should complete normally`() {
-        cmd(arrayOf("--from", "com.example.com", "--to", "com.example.app"))
+        cmd("--from com.example.com --to com.example.app")
         assertEquals(cli.messages, emptyList())
     }
 
-    private fun cmd(args: Array<String>) {
-        cli.parse(args)
-    }
+    private fun cmd(command: String) = cli.parse(command.split(' ').toTypedArray())
 
     companion object {
         private lateinit var cli: Chpkg
