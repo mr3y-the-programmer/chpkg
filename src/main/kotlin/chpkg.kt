@@ -8,6 +8,11 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.options.versionOption
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okio.IOException
 import okio.buffer
 import okio.source
@@ -53,7 +58,9 @@ class PkgOptions : OptionGroup() {
     }
 }
 
-class Chpkg : CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs = true) {
+class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
+    CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs = true) {
+
     val pkgOptions by PkgOptions().cooccurring()
 
     init {
@@ -77,15 +84,25 @@ class Chpkg : CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs 
             )
         }
         val modules = readModulesNames(File(settingsPath.toString()))
-        modules.forEach { module ->
-            val srcPath: (String) -> Path = { path(module) / "src" / it }
-            traversePath(srcPath("main"), from, to)
-            traversePath(srcPath("test"), from, to)
-            traversePath(srcPath("androidTest"), from, to)
+        runBlocking {
+            modules.forEach { module ->
+                val srcPath: (dir: String) -> Path = { path(module) / "src" / it }
+                launch(dispatcher) {
+                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                        traversePath(srcPath("main"), from, to)
+                    }
+                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                        traversePath(srcPath("test"), from, to)
+                    }
+                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                        traversePath(srcPath("androidTest"), from, to)
+                    }
+                }
+            }
         }
     }
 
-    private fun traversePath(path: Path, from: String, to: String) {
+    private suspend fun traversePath(path: Path, from: String, to: String) {
         if (path.notExists()) return
         File(path.toString()).walkBottomUp().forEach { file ->
             when {

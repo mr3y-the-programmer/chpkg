@@ -1,67 +1,87 @@
+
+import kotlinx.coroutines.suspendCancellableCoroutine
 import okio.buffer
 import okio.source
 import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.nio.file.Files
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.getOrSet
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.io.path.name
 
 typealias IllegalReceiverException = IllegalArgumentException
 
 @TestOnly
-internal fun File.updateDirName(from: String, to: String) {
-    if (!isDirectory) throw IllegalReceiverException("$name isn't a valid directory!")
+internal suspend fun File.updateDirName(from: String, to: String) = suspendCancellableCoroutine<Unit> { cont ->
+    if (!isDirectory) cont.resumeWithException(IllegalReceiverException("$name isn't a valid directory!"))
     val dirName = name
-    if (!from.startsWith(dirName)) {
-        var startBoundFile = parentFile.toPath()
-        var startBound = startBoundFile.last().name
-        while (startBound.isNotEmpty()) {
-            when {
-                from.startsWith(startBound) -> break
-                from.contains(".") && !from.contains(startBound) -> return
+    while (cont.isActive) {
+        if (!from.startsWith(dirName)) {
+            var startBoundFile = parentFile.toPath()
+            var startBound = startBoundFile.last().name
+            while (startBound.isNotEmpty()) {
+                when {
+                    from.startsWith(startBound) -> break
+                    from.contains(".") && !from.contains(startBound) -> {
+                        cont.resume(Unit)
+                        return@suspendCancellableCoroutine
+                    }
+                }
+                startBoundFile = startBoundFile.parent
+                startBound = startBoundFile.lastOrNull()?.name ?: break
             }
-            startBoundFile = startBoundFile.parent
-            startBound = startBoundFile.lastOrNull()?.name ?: break
         }
-    }
-    val newName = when {
-        dirName == from -> to
-        from.contains(dirName) -> {
-            val bijection = from.split('.') zip to.split('.')
-            bijection.dropDuplicates(from, dirName).last { it.first == dirName }.second
+        val newName = when {
+            dirName == from -> to
+            from.contains(dirName) -> {
+                val bijection = from.split('.') zip to.split('.')
+                bijection.dropDuplicates(from, dirName).last { it.first == dirName }.second
+            }
+            dirName.contains(from) -> dirName.replace(from, to)
+            else -> {
+                cont.resume(Unit)
+                return@suspendCancellableCoroutine
+            }
         }
-        dirName.contains(from) -> dirName.replace(from, to)
-        else -> return
+        val oldPath = this.toPath()
+        // TODO: allow user to replace existing dir through a flag
+        runCatching { Files.move(oldPath, oldPath.resolveSibling(newName)) }.getOrElse { cont.resumeWithException(it) }
+        cont.resume(Unit)
     }
-    val oldPath = this.toPath()
-    // TODO: allow user to replace existing dir through a flag
-    runCatching { Files.move(oldPath, oldPath.resolveSibling(newName)) }.getOrThrow()
 }
 
-private val dirsNotProcessed = AtomicInteger(Int.MAX_VALUE)
+// This should be private but for correctness, coroutines' job needs to know about
+// it, so as a workaround it is internal for now
+internal val dirsNotProcessed = ThreadLocal<Int>()
 
 private fun List<Pair<String, String>>.dropDuplicates(
     container: String,
     contained: String
 ): List<Pair<String, String>> {
     return if (container.containsMoreThanOnce(contained)) {
-        var copy: Int
-        var safeCopy: Int
-        while (true) {
-            copy = dirsNotProcessed.get()
-            safeCopy = copy.coerceIn(0, size)
-            val newValue = subList(0, safeCopy).indexOfLast { it.first == contained }
-            if (dirsNotProcessed.compareAndSet(copy, newValue)) break
-        }
-        dropLast(size - safeCopy)
+        /*runBlocking {
+            dirsNotProcessed.ensurePresent()
+        }*/
+        val copy = dirsNotProcessed.getOrSet { size }.coerceIn(0, size)
+        dirsNotProcessed.set(subList(0, copy).indexOfLast { it.first == contained })
+        dropLast(size - copy)
     } else this
 }
 
 @TestOnly
-internal fun File.updatePkgName(from: String, to: String) {
-    val oldPkg = extractPkgName() ?: return
-    val newPkg = if (from == oldPkg) to else oldPkg.replace(from, to)
-    replace(oldPkg, newPkg)
+internal suspend fun File.updatePkgName(from: String, to: String) = suspendCancellableCoroutine<Unit> { cont ->
+    while (cont.isActive) {
+        val oldPkg = extractPkgName()
+        if (oldPkg != null) {
+            val newPkg = if (from == oldPkg) to else oldPkg.replace(from, to)
+            replace(oldPkg, newPkg)
+            cont.resume(Unit)
+        } else {
+            cont.resume(Unit)
+            return@suspendCancellableCoroutine
+        }
+    }
 }
 
 @TestOnly
