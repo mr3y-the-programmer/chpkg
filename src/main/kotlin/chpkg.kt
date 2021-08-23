@@ -1,5 +1,8 @@
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.UsageError
+import com.github.ajalt.clikt.core.context
+import com.github.ajalt.clikt.output.CliktHelpFormatter
+import com.github.ajalt.clikt.output.HelpFormatter
 import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import com.github.ajalt.clikt.parameters.groups.cooccurring
 import com.github.ajalt.clikt.parameters.options.check
@@ -8,6 +11,10 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.options.versionOption
+import com.github.ajalt.mordant.rendering.TextColors.Companion.rgb
+import com.github.ajalt.mordant.rendering.TextColors.brightYellow
+import com.github.ajalt.mordant.rendering.TextStyles.bold
+import com.github.ajalt.mordant.rendering.TextStyles.underline
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
@@ -24,8 +31,20 @@ import kotlin.io.path.exists
 import kotlin.io.path.notExists
 import kotlin.jvm.Throws
 
+// TODO: split those classes into multiple files
+class ChpkgHelpFormatter : CliktHelpFormatter() {
+    override fun optionMetavar(option: HelpFormatter.ParameterHelp.Option) = rgb("#84807F")(super.optionMetavar(option))
+
+    override fun renderOptionName(name: String) = brightYellow(super.renderOptionName(name))
+
+    override fun renderSectionTitle(title: String): String {
+        val sectionStyle = (bold + underline)
+        return sectionStyle(super.renderSectionTitle(title))
+    }
+}
+
 class PkgOptions : OptionGroup() {
-    val from by option("--from", help = helpMessageFor("old"), metavar = "old package name")
+    val from by option("--from", help = helpMessageFor("old"), metavar = "old_package_name")
         .convert {
             // for more flexibility, allow pkg name to have a suffix of only 1 "."
             // so, users can in practice use "com.example.app" & "com.example.app." interchangeably
@@ -36,7 +55,7 @@ class PkgOptions : OptionGroup() {
             it.isPackageName()
         }
 
-    val to by option("--to", help = helpMessageFor("new"), metavar = "new package name")
+    val to by option("--to", help = helpMessageFor("new"), metavar = "new_package_name")
         .convert {
             it.trimLastDot()
         }
@@ -70,6 +89,7 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
     init {
         // TODO: fetch this from git tags
         versionOption("1.0.3", help = "Current Chpkg's version")
+        context { helpFormatter = ChpkgHelpFormatter() }
     }
 
     override fun run() {
