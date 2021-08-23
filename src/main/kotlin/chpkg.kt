@@ -10,6 +10,7 @@ import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.options.versionOption
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okio.IOException
@@ -87,13 +88,13 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
             modules.forEach { module ->
                 val srcPath: (dir: String) -> Path = { path(module) / "src" / it }
                 launch(dispatcher) {
-                    launch {
+                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("main"), from, to)
                     }
-                    launch {
+                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("test"), from, to)
                     }
-                    launch {
+                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("androidTest"), from, to)
                     }
                 }

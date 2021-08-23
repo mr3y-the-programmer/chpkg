@@ -1,10 +1,14 @@
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Rule
 import org.junit.Test
 import utils.TestCoroutineRule
 import utils.baseMainPath
+import utils.baseTestPath
 import utils.getModuleMainDirs
+import utils.getModuleTestDirs
 import java.nio.file.Path
 import kotlin.io.path.div
 import kotlin.io.path.exists
@@ -49,6 +53,22 @@ class UpdateDirNameTest {
     }
 
     @Test
+    fun `check base module multiple duplicated segment in two different paths are updated correctly`() {
+        val oldMainPath = baseMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newMainPath = baseMainPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
+        val oldTestPath = baseTestPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newTestPath = baseTestPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
+        coroutineRule.testDispatcher.runBlockingTest {
+            launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                runTest("base", "project.base.project", "pro.foo.io", oldMainPath, newMainPath)
+            }
+            launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                runTest("base", "project.base.project", "pro.foo.io", oldTestPath, newTestPath, true)
+            }
+        }
+    }
+
+    @Test
     fun `check common module's part of dir is updated correctly`() {
         val oldPath = baseMainPath("common") / "kotlin" / "com" / "project" / "common" / "app"
         val newPath = baseMainPath("common") / "kotlin" / "com" / "prcrowct" / "common" / "app"
@@ -60,9 +80,10 @@ class UpdateDirNameTest {
         from: String,
         to: String,
         oldPath: Path,
-        newPath: Path
+        newPath: Path,
+        isTestPath: Boolean = false
     ) = coroutineRule.testDispatcher.runBlockingTest {
-        val dirs = getModuleMainDirs(module)
+        val dirs = if (isTestPath) getModuleTestDirs(module) else getModuleMainDirs(module)
         dirs.forEach { it.updateDirName(from, to) }
         assertTrue { newPath.exists() }
         assertTrue { newPath.exists() }

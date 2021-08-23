@@ -1,10 +1,11 @@
+
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okio.buffer
 import okio.source
 import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.nio.file.Files
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.getOrSet
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.name
@@ -50,22 +51,21 @@ internal suspend fun File.updateDirName(from: String, to: String) = suspendCance
     }
 }
 
-private val dirsNotProcessed = AtomicInteger(Int.MAX_VALUE)
+// This should be private but for correctness, coroutines' job needs to know about
+// it, so as a workaround it is internal for now
+internal val dirsNotProcessed = ThreadLocal<Int>()
 
 private fun List<Pair<String, String>>.dropDuplicates(
     container: String,
     contained: String
 ): List<Pair<String, String>> {
     return if (container.containsMoreThanOnce(contained)) {
-        var copy: Int
-        var safeCopy: Int
-        while (true) {
-            copy = dirsNotProcessed.get()
-            safeCopy = copy.coerceIn(0, size)
-            val newValue = subList(0, safeCopy).indexOfLast { it.first == contained }
-            if (dirsNotProcessed.compareAndSet(copy, newValue)) break
-        }
-        dropLast(size - safeCopy)
+        /*runBlocking {
+            dirsNotProcessed.ensurePresent()
+        }*/
+        val copy = dirsNotProcessed.getOrSet { size }.coerceIn(0, size)
+        dirsNotProcessed.set(subList(0, copy).indexOfLast { it.first == contained })
+        dropLast(size - copy)
     } else this
 }
 
