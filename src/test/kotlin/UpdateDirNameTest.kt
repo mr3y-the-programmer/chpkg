@@ -5,10 +5,10 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Rule
 import org.junit.Test
 import utils.TestCoroutineRule
-import utils.baseMainPath
-import utils.baseTestPath
 import utils.getModuleMainDirs
 import utils.getModuleTestDirs
+import utils.srcMainPath
+import utils.srcTestPath
 import java.nio.file.Path
 import kotlin.io.path.div
 import kotlin.io.path.exists
@@ -26,38 +26,38 @@ class UpdateDirNameTest {
 
     @Test
     fun `check app module directories are updated correctly`() {
-        val oldPath = baseMainPath("app") / "kotlin" / "com" / "project" / "app"
-        val newPath = baseMainPath("app") / "kotlin" / "net" / "bar" / "foo"
+        val oldPath = srcMainPath("app") / "kotlin" / "com" / "project" / "app"
+        val newPath = srcMainPath("app") / "kotlin" / "net" / "bar" / "foo"
         runTest("app", "com.project.app", "net.bar.foo", oldPath, newPath)
     }
 
     @Test
     fun `check base module parent dirs are updated correctly`() {
-        val oldPath = baseMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
-        val newPath = baseMainPath("base") / "kotlin" / "io" / "foo" / "base" / "project"
+        val oldPath = srcMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newPath = srcMainPath("base") / "kotlin" / "io" / "foo" / "base" / "project"
         runTest("base", "com.project", "io.foo", oldPath, newPath)
     }
 
     @Test
     fun `check base module single duplicated segment is updated in multiple places`() {
-        val oldPath = baseMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
-        val newPath = baseMainPath("base") / "kotlin" / "com" / "foo" / "base" / "foo"
+        val oldPath = srcMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newPath = srcMainPath("base") / "kotlin" / "com" / "foo" / "base" / "foo"
         runTest("base", "project", "foo", oldPath, newPath)
     }
 
     @Test
     fun `check base module multiple duplicated segment is mapped correctly`() {
-        val oldPath = baseMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
-        val newPath = baseMainPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
+        val oldPath = srcMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newPath = srcMainPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
         runTest("base", "project.base.project", "pro.foo.io", oldPath, newPath)
     }
 
     @Test
     fun `check base module multiple duplicated segment in two different paths are updated correctly`() {
-        val oldMainPath = baseMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
-        val newMainPath = baseMainPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
-        val oldTestPath = baseTestPath("base") / "kotlin" / "com" / "project" / "base" / "project"
-        val newTestPath = baseTestPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
+        val oldMainPath = srcMainPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newMainPath = srcMainPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
+        val oldTestPath = srcTestPath("base") / "kotlin" / "com" / "project" / "base" / "project"
+        val newTestPath = srcTestPath("base") / "kotlin" / "com" / "pro" / "foo" / "io"
         coroutineRule.testDispatcher.runBlockingTest {
             launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                 runTest("base", "project.base.project", "pro.foo.io", oldMainPath, newMainPath)
@@ -70,8 +70,8 @@ class UpdateDirNameTest {
 
     @Test
     fun `check common module's part of dir is updated correctly`() {
-        val oldPath = baseMainPath("common") / "kotlin" / "com" / "project" / "common" / "app"
-        val newPath = baseMainPath("common") / "kotlin" / "com" / "prcrowct" / "common" / "app"
+        val oldPath = srcMainPath("common") / "kotlin" / "com" / "project" / "common" / "app"
+        val newPath = srcMainPath("common") / "kotlin" / "com" / "prcrowct" / "common" / "app"
         runTest("common", "oje", "crow", oldPath, newPath)
     }
 
