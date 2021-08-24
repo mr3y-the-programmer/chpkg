@@ -11,7 +11,7 @@ class PkgOptionsTest {
     @Test
     fun `entering from without to should throw MissingOption`() {
         assertFailsWith(MissingOption::class) {
-            cmd("--from com.example.com")
+            cmd("com.example.com")
         }
     }
 
@@ -25,29 +25,29 @@ class PkgOptionsTest {
     @Test
     fun `to value is the same as from value should throw BadParameterValue`() {
         assertFailsWith(BadParameterValue::class) {
-            cmd("--from com.example.com --to com.example.com")
+            cmd("com.example.com" "com.example.com")
         }
         assertFailsWith(BadParameterValue::class) {
-            cmd("--from com.example.com. --to com.example.com")
+            cmd("com.example.com." "com.example.com")
         }
         assertFailsWith(BadParameterValue::class) {
-            cmd("--from com.example.com --to com.example.com.")
+            cmd("com.example.com" "com.example.com.")
         }
     }
 
     @Test
     fun `from & to don't match on the number of segments should throw BadParameterValue`() {
         assertFailsWith(BadParameterValue::class) {
-            cmd("--from com.example.com --to com.example.com.net")
+            cmd("com.example.com" "com.example.com.net")
         }
         assertFailsWith(BadParameterValue::class) {
-            cmd("--from com.example.com.io --to com.example.com")
+            cmd("com.example.com.io" "com.example.com")
         }
     }
 
     @Test
     fun `to value is not as from value should complete normally`() {
-        cmd("--from com.example.com --to com.example.app")
+        cmd("com.example.com" "com.example.app")
         assertEquals(cli.messages, emptyList())
     }
 
