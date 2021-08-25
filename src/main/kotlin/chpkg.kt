@@ -59,18 +59,24 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
                 progress.preUpdatingModuleMessage(module)
                 val srcPath: (dir: String) -> Path = { path(module) / "src" / it }
                 launch(dispatcher + progress.value.asContextElement(0f)) {
-                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                    val j1 = launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("main"), from, to)
                         progress.updateProgress(0.33f)
                     }
-                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                    val j2 = launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("test"), from, to)
+                        j1.join()
                         progress.updateProgress(0.66f)
                     }
-                    launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
+                    val j3 = launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("androidTest"), from, to)
+                        j1.join()
+                        j2.join()
                         progress.updateProgress(0.99f)
                     }
+                    j1.join()
+                    j2.join()
+                    j3.join()
                     progress.updateProgress(100f, true)
                 }
             }
