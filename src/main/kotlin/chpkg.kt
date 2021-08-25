@@ -15,6 +15,7 @@ import okio.buffer
 import okio.source
 import ui.ChpkgHelpFormatter
 import ui.PkgOptions
+import ui.ProgressNotifier
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -27,6 +28,7 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
     CliktCommand(invokeWithoutSubcommand = true, printHelpOnEmptyArgs = true) {
 
     val pkgOptions by PkgOptions().cooccurring()
+    private val progress by lazy { ProgressNotifier() }
 
     init {
         // TODO: fetch this from git tags
@@ -49,23 +51,32 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
                     " make sure you have one in the root of your project"
             )
         }
+        progress.preReadingModulesMessage()
         val modules = readModulesNames(File(settingsPath.toString()))
+        progress.postReadingModulesMessage()
         runBlocking {
             modules.forEach { module ->
+                progress.preUpdatingModuleMessage(module)
                 val srcPath: (dir: String) -> Path = { path(module) / "src" / it }
-                launch(dispatcher) {
+                launch(dispatcher + progress.value.asContextElement(0f)) {
                     launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("main"), from, to)
+                        progress.updateProgress(0.33f)
                     }
                     launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("test"), from, to)
+                        progress.updateProgress(0.66f)
                     }
                     launch(dirsNotProcessed.asContextElement(value = Int.MAX_VALUE)) {
                         traversePath(srcPath("androidTest"), from, to)
+                        progress.updateProgress(0.99f)
                     }
+                    progress.updateProgress(100f, true)
                 }
             }
+            progress.postUpdatingModulesMessage()
         }
+        progress.successMessage()
     }
 
     private suspend fun traversePath(path: Path, from: String, to: String) {
