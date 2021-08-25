@@ -39,23 +39,8 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
     override fun run() {
         val options = pkgOptions ?: return
         val (from, to) = options.from to options.to
-        val rootProject = System.getProperty("user.dir")
-        fun path(fileName: String): Path {
-            return Paths.get(rootProject, fileName).toAbsolutePath()
-        }
-        val settingsPath = when {
-            path("settings.gradle.kts").exists() -> path("settings.gradle.kts")
-            path("settings.gradle").exists() -> path("settings.gradle")
-            else -> throw UsageError(
-                "chpkg cannot function without settings.gradle/.kts file," +
-                    " make sure you have one in the root of your project"
-            )
-        }
-        progress.preReadingModulesMessage()
-        val modules = readModulesNames(File(settingsPath.toString()))
-        progress.postReadingModulesMessage()
         runBlocking {
-            modules.forEach { module ->
+            getModules().forEach { module ->
                 progress.preUpdatingModuleMessage(module)
                 val srcPath: (dir: String) -> Path = { path(module) / "src" / it }
                 launch(dispatcher + progress.value.asContextElement(0f)) {
@@ -93,6 +78,26 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
                 file.isFile -> file.updatePkgName(from, to)
             }
         }
+    }
+
+    private fun getModules(): List<String> {
+        val settingsPath = when {
+            path("settings.gradle.kts").exists() -> path("settings.gradle.kts")
+            path("settings.gradle").exists() -> path("settings.gradle")
+            else -> throw UsageError(
+                "chpkg cannot function without settings.gradle/.kts file," +
+                    " make sure you have one in the root of your project"
+            )
+        }
+        progress.preReadingModulesMessage()
+        val modules = readModulesNames(File(settingsPath.toString()))
+        progress.postReadingModulesMessage()
+        return modules
+    }
+
+    private fun path(fileName: String): Path {
+        val rootProject = System.getProperty("user.dir")
+        return Paths.get(rootProject, fileName).toAbsolutePath()
     }
 
     @Throws(IOException::class)
