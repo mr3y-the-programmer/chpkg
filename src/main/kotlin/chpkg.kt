@@ -32,7 +32,7 @@ class Chpkg(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) :
 
     init {
         // TODO: fetch this from git tags
-        versionOption("1.0.3", help = "Current Chpkg's version")
+        versionOption("1.0-alpha01", help = "Current Chpkg's version")
         context { helpFormatter = ChpkgHelpFormatter() }
     }
 
