@@ -1,8 +1,10 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.5.30"
     id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
+    id("com.github.johnrengelman.shadow") version "7.0.0"
     application
 }
 
@@ -24,6 +26,25 @@ dependencies {
 
 tasks.test {
     useJUnit()
+}
+
+tasks.named<ShadowJar>("shadowJar") {
+    // the jar remains up to date even when changing excludes
+    // https://github.com/johnrengelman/shadow/issues/62
+    outputs.upToDateWhen { false }
+
+    group = "Build"
+    description = "Creates a fat jar"
+    archiveFileName.set("$archiveBaseName-${project.version}-all.jar")
+    isReproducibleFileOrder = true
+
+    from(sourceSets.main.get().output)
+    from(project.configurations.runtimeClasspath)
+
+    // Excluding these helps shrink our binary dramatically
+    exclude("**/*.kotlin_metadata")
+    exclude("**/*.kotlin_module")
+    exclude("META-INF/maven/**")
 }
 
 tasks.withType<KotlinCompile>() {
