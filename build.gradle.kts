@@ -28,6 +28,17 @@ tasks.test {
     useJUnit()
 }
 
+tasks.named<Jar>("jar") {
+    manifest.attributes(Pair("Main-Class", "MainKt"))
+    from(sourceSets.main.get().output)
+
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+    exclude("META-INF/**/module-info.class")
+}
+
 tasks.named<ShadowJar>("shadowJar") {
     // the jar remains up to date even when changing excludes
     // https://github.com/johnrengelman/shadow/issues/62
@@ -52,5 +63,7 @@ tasks.withType<KotlinCompile>() {
 }
 
 application {
-    mainClassName = "MainKt"
+    // For some reason I haven't investigated yet this doesn't work,
+    // We need to set this attribute manually in jar task
+    mainClass.set("MainKt")
 }
