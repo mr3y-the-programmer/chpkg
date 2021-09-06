@@ -18,7 +18,7 @@ class ChpkgRunTest {
     @Test
     fun `change the global namespace from com,project to net,bar`() {
         val (oldNameSpace, newNameSpace) = "com.project" to "net.bar"
-        cmd("--from $oldNameSpace --to $newNameSpace")
+        cmd("$oldNameSpace" "$newNameSpace")
         val (modulesPaths, moduleFiles) = modules.map { root / it } to modules.flatMap { getModuleMainFiles(it) }
         modulesPaths.forEach { path ->
             val src = path / "src" / "main" / "kotlin"
@@ -31,7 +31,7 @@ class ChpkgRunTest {
             assertFalse { file.readText().contains(oldNameSpace) }
         }
         // reset to default to make the test idempotent & deterministic
-        cmd("--from $newNameSpace --to $oldNameSpace")
+        cmd("$newNameSpace" "$oldNameSpace")
     }
 
     private fun cmd(command: String) = chpkg.parse(command.split(' ').toTypedArray())
